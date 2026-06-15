@@ -3,6 +3,7 @@ title: "RAG 策略对比：Basic、Graph、Grep、Structural"
 description: "深入对比四种 RAG 策略——基础 HardChunk、Graph RAG、Grep RAG 与 Structural RAG，基于 Enterprise RAG Challenge 2 数据集，从检索质量、语义理解和工程代价等维度进行系统评估"
 pubDate: 2025-12-22
 updatedDate: 2026-05-01
+section: rag
 ---
 
 选择合适的 RAG 策略对构建高质量的问答系统至关重要。本文基于 Enterprise RAG Challenge 2 的数据集，从检索质量、语义理解和工程代价等维度，对四种主流 RAG 方案进行了系统评估。

@@ -3,6 +3,7 @@ title: "ECOM1: E-commerce Agent Challenge 解读"
 description: "BitGN 电商智能体基准：覆盖购物、结账、退款、风控等业务域，评估 Agent 在真实业务约束下的工具调用和风险控制能力。"
 pubDate: 2026-05-28
 updatedDate: 2026-06-02
+section: eval
 ---
 
 ECOM1 (E-commerce Agent Challenge) 是 BitGN 推出的电商智能体评测基准，覆盖购物、结账、退款和风控等业务场景。本文将对该比赛的内容、业务范围和参与流程进行梳理。

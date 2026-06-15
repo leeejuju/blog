@@ -3,6 +3,7 @@ title: "Agent 记忆系统调研：Mem0、Zep、EverMemOS"
 description: "调研多种 AI Agent 记忆系统方案，包括 Mem0、Zep 和 EverMemOS，分析它们在持久化记忆、混合检索和多 Agent 协等方面的架构设计与实践路径"
 pubDate: 2025-12-22
 updatedDate: 2026-03-31
+section: memory
 ---
 
 ## 概述

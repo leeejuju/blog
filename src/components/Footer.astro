@@ -14,24 +14,31 @@ const today = new Date();
 <style>
   footer {
     text-align: center;
-    padding: 2em 1em 4em 1em;
+    padding: 3em 1em 4em 1em;
     color: var(--text-muted);
     font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    margin-top: 2em;
   }
   footer a {
     color: var(--text-muted);
     text-decoration: none;
+    transition: color 0.2s;
   }
   footer a:hover {
-    color: var(--text);
+    color: var(--accent);
   }
   .footer-links {
     margin-bottom: 0.5em;
+    display: flex;
+    justify-content: center;
+    gap: 0.6em;
   }
   .sep {
-    margin: 0 0.5em;
+    color: var(--border);
   }
   .copyright {
     margin: 0;
+    font-size: 0.9em;
   }
 </style>

@@ -12,5 +12,6 @@ export default defineConfig({
 		shikiConfig: {
 			theme: 'github-dark',
 		},
+		rehypePlugins: [['rehype-slug', {}]],
 	},
 });

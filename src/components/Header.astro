@@ -1,13 +1,26 @@
 ---
 import { SITE_TITLE } from '../consts';
+
+interface Props {
+  title?: string;
+}
+
+const { title } = Astro.props;
+const displayTitle = title || SITE_TITLE;
 ---
 
 <header>
   <div class="container">
-    <a href="/" class="site-title">{SITE_TITLE}</a>
+    <div class="header-left">
+      <img class="header-avatar" src="/images/avatar.png" alt="avatar" width="72" height="72" />
+      <a href="/" class="site-title">{displayTitle}</a>
+    </div>
     <nav>
-      <a href="/">文章</a>
-      <a href="/about">About</a>
+      <a href="/">Framework</a>
+      <a href="/engineering/">paper & engineering</a>
+      <a href="/rag/">RAG</a>
+      <a href="/memory/">Memory</a>
+      <a href="/eval/">测试</a>
       <a href="https://github.com/leeejuju" target="_blank" rel="noopener noreferrer">GitHub</a>
     </nav>
   </div>
@@ -18,13 +31,16 @@ import { SITE_TITLE } from '../consts';
     position: sticky;
     top: 0;
     z-index: 10;
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(10px);
+    background: rgba(254, 249, 240, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
+    transition: background 0.3s, border-color 0.3s;
   }
+
   @media (prefers-color-scheme: dark) {
     header {
-      background: rgba(13, 13, 13, 0.72);
+      background: rgba(20, 18, 14, 0.75);
     }
   }
 
@@ -36,30 +52,56 @@ import { SITE_TITLE } from '../consts';
     align-items: center;
     justify-content: space-between;
     height: 56px;
+    flex-wrap: nowrap;
+    gap: 1rem;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+
+  .header-avatar {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
   }
 
   .site-title {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: var(--heading);
     text-decoration: none;
+    letter-spacing: -0.01em;
     transition: opacity 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .site-title:hover {
-    opacity: 0.8;
+    opacity: 0.7;
   }
 
   nav {
     display: flex;
     gap: 1.5rem;
+    flex-shrink: 0;
   }
   nav a {
-    font-size: 0.95rem;
+    font-size: 0.93rem;
     color: var(--text-muted);
     text-decoration: none;
     transition: color 0.2s;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
   }
   nav a:hover {
     color: var(--heading);
+    border-bottom-color: var(--accent);
   }
 </style>

@@ -2,6 +2,7 @@
 title: "PAC1: Personal Agent Challenge 解读"
 description: "BitGN 的可信个人 Agent 评测基准：不只是 RAG，而是端到端考察检索、工具使用、边界意识和抗注入能力的 Agent 工程评测。"
 pubDate: 2026-06-02
+section: eval
 ---
 
 PAC1 (Personal Agent Challenge) 是 BitGN 推出的个人可信 Agent 评测基准，专注于评估智能体在个人助理场景中的综合能力。本文将对该比赛的内容、评分方式和参与方法进行解读。

@@ -1,0 +1,67 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_TITLE } from '../../consts';
+
+const posts = (await getCollection('blog'))
+  .filter((p) => p.data.section === 'eval')
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
+  const year = post.data.pubDate.getFullYear().toString();
+  if (!acc[year]) acc[year] = [];
+  acc[year].push(post);
+  return acc;
+}, {});
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={`测试 - ${SITE_TITLE}`} description="Agent 评测与基准测试。" />
+  </head>
+  <body>
+    <Header title="测试" />
+    <main>
+      <h1>测试</h1>
+      <p class="section-desc">Agent 评测基准：ECOM、PAC 等 Challenge 解读与实践。</p>
+      <div class="posts-timeline">
+        {
+          Object.entries(postsByYear).map(([year, yearPosts]) => (
+            <div class="timeline-year-group">
+              <h2 class="timeline-year">{year}</h2>
+              <ul class="timeline-posts">
+                {yearPosts.map((post) => (
+                  <li class="timeline-post-item">
+                    <time class="timeline-post-date" datetime={post.data.pubDate.toISOString()}>
+                      {post.data.pubDate.toLocaleDateString('zh-CN', {
+                        month: '2-digit', day: '2-digit',
+                      })}
+                    </time>
+                    <a class="timeline-post-link" href={`/blog/${post.id}/`}>{post.data.title}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  h1 { margin-bottom: 0.3rem; font-weight: 800; letter-spacing: -0.02em; }
+  .section-desc { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2.5rem; }
+  .posts-timeline { display: flex; flex-direction: column; gap: 1.8rem; }
+  .timeline-year { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; padding-bottom: 0.35em; border-bottom: 1px solid var(--border); }
+  .timeline-posts { list-style: none; padding: 0; margin: 0; }
+  .timeline-post-item { display: flex; align-items: baseline; gap: 1rem; padding: 0.4rem 0.6rem; border-radius: 6px; transition: background 0.15s; margin: 0 -0.6rem; }
+  .timeline-post-item:hover { background: var(--accent-light); }
+  .timeline-post-date { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-muted); min-width: 50px; white-space: nowrap; }
+  .timeline-post-link { color: var(--text); text-decoration: none; transition: color 0.2s; font-weight: 480; }
+  .timeline-post-item:hover .timeline-post-link { color: var(--accent); }
+</style>

@@ -5,9 +5,8 @@ import Footer from '../../components/Footer.astro';
 import Header from '../../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
 
-const posts = (await getCollection('blog')).sort(
-  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
-);
+const posts = (await getCollection('blog'))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
 const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
   const year = post.data.pubDate.getFullYear().toString();
@@ -20,12 +19,13 @@ const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title={`文章 - ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+    <BaseHead title={`Framework - ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
   </head>
   <body>
-    <Header />
+    <Header title="Framework" />
     <main>
-      <h1>文章</h1>
+      <h1>Framework</h1>
+      <p class="section-desc">Agent 框架开发笔记、工具链踩坑与实战记录。</p>
       <div class="posts-timeline">
         {
           Object.entries(postsByYear).map(([year, yearPosts]) => (
@@ -57,46 +57,65 @@ const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
 
 <style>
   h1 {
-    margin-bottom: 2rem;
+    margin-bottom: 0.3rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
   }
+
+  .section-desc {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
+  }
+
   .posts-timeline {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.8rem;
   }
+
   .timeline-year {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
-    border-bottom: none;
-    color: var(--heading);
+    padding-bottom: 0.35em;
+    border-bottom: 1px solid var(--border);
   }
+
   .timeline-posts {
     list-style: none;
     padding: 0;
     margin: 0;
   }
+
   .timeline-post-item {
     display: flex;
     align-items: baseline;
     gap: 1rem;
-    padding: 0.35rem 0;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    transition: background 0.15s;
+    margin: 0 -0.6rem;
   }
+  .timeline-post-item:hover {
+    background: var(--accent-light);
+  }
+
   .timeline-post-date {
-    font-family: var(--font-mono, monospace);
-    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
     color: var(--text-muted);
     min-width: 50px;
     white-space: nowrap;
   }
+
   .timeline-post-link {
-    color: var(--link);
+    color: var(--text);
     text-decoration: none;
-    transition: color 0.2s, border-color 0.2s;
-    border-bottom: 1px solid transparent;
+    transition: color 0.2s;
+    font-weight: 480;
   }
-  .timeline-post-link:hover {
-    color: var(--link-hover);
-    border-bottom-color: var(--link-hover);
+  .timeline-post-item:hover .timeline-post-link {
+    color: var(--accent);
   }
 </style>

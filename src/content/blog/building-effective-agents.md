@@ -3,6 +3,7 @@ title: "Building Effective Agents — 阅读笔记"
 description: "解读 Anthropic 多 Agent 研究系统的设计原则：Orchestrator 模式、并行检索、任务分解、工具设计等 7 个关键实践。"
 pubDate: 2026-05-13
 updatedDate: 2026-05-24
+section: engineering
 ---
 
 Anthropic 在 2024 年底发布了一篇关于其 Multi-Agent Research System 的技术博客，详细介绍了他们在构建多智能体检索系统时的设计考量与实践经验。本文是对该文章的阅读笔记，梳理了其中的核心设计原则、架构模式以及在工程实践中的思考与验证。

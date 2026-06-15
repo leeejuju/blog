@@ -3,6 +3,7 @@ title: "多 Agent 框架调研：DeepAgent、AgentScope、OpenManus 等"
 description: "对 DeepAgent、AgentScope、Agno、OpenManus、Youtu-Agent、Deer-Flow 等多个 Agent 框架的架构分析与对比"
 pubDate: 2025-10-24
 updatedDate: 2026-06-09
+section: engineering
 ---
 
 本文是对多个主流多 Agent 框架的调研与架构分析笔记，涵盖 DeepAgent、AgentScope、Agno、OpenManus 等框架，重点关注各框架的核心设计思路与工程实现特点。

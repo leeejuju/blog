@@ -1,17 +1,16 @@
 ---
 import { getCollection } from 'astro:content';
-import BaseHead from '../components/BaseHead.astro';
-import Footer from '../components/Footer.astro';
-import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_TITLE } from '../../consts';
 
-const posts = await getCollection('blog');
-const sortedPosts = posts.sort(
-  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
-);
+const allPosts = await getCollection('blog');
+const posts = allPosts
+  .filter((p) => p.data.section === 'engineering')
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
-// Group by year
-const postsByYear = sortedPosts.reduce((acc: Record<string, typeof posts>, post) => {
+const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
   const year = post.data.pubDate.getFullYear().toString();
   if (!acc[year]) acc[year] = [];
   acc[year].push(post);
@@ -22,15 +21,12 @@ const postsByYear = sortedPosts.reduce((acc: Record<string, typeof posts>, post)
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+    <BaseHead title={`paper & engineering - ${SITE_TITLE}`} description="paper & engineering" />
   </head>
   <body>
-    <Header />
+    <Header title="paper & engineering" />
     <main>
-      <div class="home-intro">
-        <h1>{SITE_TITLE}</h1>
-        <p class="tagline">{SITE_DESCRIPTION}</p>
-      </div>
+      <h1>paper & engineering</h1>
 
       <div class="posts-timeline">
         {
@@ -62,36 +58,29 @@ const postsByYear = sortedPosts.reduce((acc: Record<string, typeof posts>, post)
 </html>
 
 <style>
-  .home-intro {
-    margin-bottom: 3rem;
-  }
-  .home-intro h1 {
-    font-size: 2.4rem;
+  h1 {
+    margin-bottom: 0.3rem;
     font-weight: 800;
-    letter-spacing: -0.03em;
-    margin-bottom: 0.1rem;
-    background: linear-gradient(135deg, var(--heading) 0%, var(--accent) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    letter-spacing: -0.02em;
   }
-  .home-intro .tagline {
+
+  .section-desc {
     color: var(--text-muted);
-    font-size: 1.05rem;
-    font-style: italic;
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
   }
 
   .posts-timeline {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.8rem;
   }
 
   .timeline-year {
     font-size: 1.3rem;
     font-weight: 700;
-    margin-bottom: 0.6rem;
-    padding-bottom: 0.4em;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.35em;
     border-bottom: 1px solid var(--border);
   }
 
