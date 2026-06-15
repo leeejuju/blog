@@ -17,7 +17,7 @@ LangChain Agent 的 Middleware 系统是 2025 年 10 月大改版后的核心特
 
 人在回路中间件，提供人工审批介入流程，拦截并挂起敏感工具调用，支持人工批准、修改或拒绝。主要用于保证敏感或高危操作（如转账、写操作）的安全控制。
 
-![HIL example](/images/HIL_eg.png)
+![HIL example](./HIL_eg.png)
 
 ### 核心参数
 
