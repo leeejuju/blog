@@ -1,0 +1,124 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+
+const posts = await getCollection('blog');
+// Sort by pubDate descending
+const sortedPosts = posts.sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+
+// Group by year
+const postsByYear = sortedPosts.reduce((acc: Record<string, typeof posts>, post) => {
+  const year = post.data.pubDate.getFullYear().toString();
+  if (!acc[year]) acc[year] = [];
+  acc[year].push(post);
+  return acc;
+}, {});
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <div class="home-intro">
+        <h1>{SITE_TITLE}</h1>
+        <p>{SITE_DESCRIPTION}</p>
+      </div>
+
+      <div class="posts-timeline">
+        {
+          Object.entries(postsByYear).map(([year, yearPosts]) => (
+            <div class="timeline-year-group">
+              <h2 class="timeline-year">{year}</h2>
+              <ul class="timeline-posts">
+                {yearPosts.map((post) => (
+                  <li class="timeline-post-item">
+                    <time class="timeline-post-date" datetime={post.data.pubDate.toISOString()}>
+                      {post.data.pubDate.toLocaleDateString('zh-CN', {
+                        month: '2-digit',
+                        day: '2-digit',
+                      })}
+                    </time>
+                    <a class="timeline-post-link" href={`/blog/${post.id}/`}>
+                      {post.data.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  .home-intro {
+    margin-bottom: 3rem;
+  }
+  .home-intro h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+  .home-intro p {
+    color: var(--color-muted, #5e646e);
+    font-size: 1rem;
+  }
+
+  .posts-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .timeline-year {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--color-heading);
+  }
+
+  .timeline-posts {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .timeline-post-item {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.35rem 0;
+  }
+
+  .timeline-post-date {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.85rem;
+    color: var(--color-muted, #5e646e);
+    min-width: 50px;
+    white-space: nowrap;
+  }
+
+  .timeline-post-link {
+    color: var(--color-link, #0066cc);
+    text-decoration: none;
+    transition: color 0.2s, border-color 0.2s;
+    border-bottom: 1px solid transparent;
+  }
+  .timeline-post-link:hover {
+    color: var(--color-link-hover, #004499);
+    border-bottom-color: var(--color-link-hover, #004499);
+  }
+</style>

@@ -1,0 +1,65 @@
+---
+import { SITE_TITLE } from '../consts';
+---
+
+<header>
+  <div class="container">
+    <a href="/" class="site-title">{SITE_TITLE}</a>
+    <nav>
+      <a href="/">文章</a>
+      <a href="/about">About</a>
+      <a href="https://github.com/leeejuju" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  @media (prefers-color-scheme: dark) {
+    header {
+      background: rgba(13, 13, 13, 0.72);
+    }
+  }
+
+  .container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 1em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+
+  .site-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--heading);
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .site-title:hover {
+    opacity: 0.8;
+  }
+
+  nav {
+    display: flex;
+    gap: 1.5rem;
+  }
+  nav a {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  nav a:hover {
+    color: var(--heading);
+  }
+</style>

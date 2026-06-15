@@ -1,0 +1,26 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead title={`About - ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <h1>About</h1>
+      <p>技术笔记，关注大语言模型、工程实践等领域。</p>
+      <p>写博客是为了整理思考，记录踩过的坑，和人交流想法。</p>
+      <h2>联系</h2>
+      <ul>
+        <li>GitHub: <a href="https://github.com/leeejuju">@leeejuju</a></li>
+      </ul>
+    </main>
+    <Footer />
+  </body>
+</html>

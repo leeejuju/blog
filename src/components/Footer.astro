@@ -1,0 +1,37 @@
+---
+const today = new Date();
+---
+
+<footer>
+  <div class="footer-links">
+    <a href="/rss.xml">RSS</a>
+    <span class="sep">·</span>
+    <a href="https://github.com/leeejuju" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </div>
+  <p class="copyright">&copy; {today.getFullYear()} juju</p>
+</footer>
+
+<style>
+  footer {
+    text-align: center;
+    padding: 2em 1em 4em 1em;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  footer a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  footer a:hover {
+    color: var(--text);
+  }
+  .footer-links {
+    margin-bottom: 0.5em;
+  }
+  .sep {
+    margin: 0 0.5em;
+  }
+  .copyright {
+    margin: 0;
+  }
+</style>
