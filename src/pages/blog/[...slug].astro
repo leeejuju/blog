@@ -13,8 +13,21 @@ type Props = CollectionEntry<'blog'>;
 
 const post = Astro.props;
 const { Content } = await render(post);
+
+// Find related posts sharing at least one category
+const allPosts = await getCollection('blog');
+const currentCategories: string[] = post.data.categories || [];
+const relatedPosts = currentCategories.length > 0
+	? allPosts
+		.filter((p) => p.id !== post.id)
+		.filter((p) => {
+			const cats = p.data.categories || [];
+			return cats.some((c: string) => currentCategories.includes(c));
+		})
+		.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+	: [];
 ---
 
-<BlogPost {...post.data}>
+<BlogPost {...post.data} categories={post.data.categories} relatedPosts={relatedPosts}>
 	<Content />
 </BlogPost>

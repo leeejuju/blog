@@ -6,10 +6,11 @@ import Header from '../../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
 
 const SECTION_LABELS: Record<string, string> = {
-  engineering: '工程实践',
-  eval: '基准评测',
-  memory: '记忆系统',
-  rag: 'RAG',
+  framework:   'Framework',
+  engineering: 'paper & engineering',
+  eval:        '基准评测',
+  memory:      '记忆系统',
+  rag:         'RAG',
 };
 
 const posts = (await getCollection('blog'))
@@ -39,7 +40,7 @@ const sortedSections = Object.keys(postsBySection).sort((a, b) => {
     <BaseHead title={`Framework - ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
   </head>
   <body>
-    <Header title="Framework" />
+    <Header />
     <main>
       <h1>Framework</h1>
       <p class="section-desc">Agent 框架开发笔记、工具链踩坑与实战记录。</p>

@@ -7,7 +7,7 @@ import { SITE_TITLE } from '../../consts';
 
 const allPosts = await getCollection('blog');
 const posts = allPosts
-  .filter((p) => p.data.section === 'engineering')
+  .filter((p) => p.data.section === 'infra')
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
 const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
@@ -21,13 +21,13 @@ const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <BaseHead title={`paper & engineering - ${SITE_TITLE}`} description="paper & engineering" />
+    <BaseHead title={`Infra - ${SITE_TITLE}`} description="推理基础设施与 Agent 基础架构。" />
   </head>
   <body>
     <Header />
     <main>
-      <h1>paper & engineering</h1>
-      <p class="section-desc">Agent 相关的技术文档，随缘翻译</p>
+      <h1>Infra</h1>
+      <p class="section-desc">推理基础设施 & Agent 基础架构：模型部署、推理优化、vLLM、GPU 集群、Agent Harness 等。</p>
 
       <div class="posts-timeline">
         {

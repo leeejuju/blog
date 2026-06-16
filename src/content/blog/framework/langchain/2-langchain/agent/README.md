@@ -1,8 +1,10 @@
 ---
-title: "LangChain Agent Factory 与 Middleware"
-description: "agent 创建的工厂方法，有以下参数。特别重要的一点是，从 2025 年大改后，agent 底层走的是 graph 那一套。"
+title: "2. langchain 源码"
+description: "10/07/2025 langchain 大改版后的代码吗，包含 agent 创建的工厂方法，有以下参数。特别重要的一点是，从 2025 年大改后，agent 底层走的是 graph 那一套。"
 pubDate: 2026-06-16
 section: framework
+categories:
+  - langchain
 ---
 
 # LangChain Agent Factory 与 Middleware

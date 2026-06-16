@@ -1,14 +1,18 @@
 ---
-title: "LangChain-Core 源码"
-description: "LangChain-Core 是 LangChain 的核心包。"
+title: "1. langchain-core 源码"
+description: "langchain-core 是 LangChain 的核心包。(之前)"
 pubDate: 2026-05-16
 section: framework
+categories:
+  - langchain
 ---
 
 # LangChain-Core
 
 > `langchain-core` 是整个 LangChain 所有的基本行为的抽象集合，定义了所有agent组件的调用标准协议，但是你让我用这玩意上工程，或许之前我会，但是现在就算了。
 > 所有其他包（`langchain`、`langgraph`、`langchain-openai` 等）都依赖它，但它不依赖任何人。
+
+> 以下全是 ****纯手打 + Typeless 口喷****
 
 ---
 
@@ -53,7 +57,7 @@ langchain-core          ← 最底层，定义所有基础抽象
 
 但是我认为最主要的还是追踪 token 生成期间的行为（`on_llm_new_token`），这一点还是比较重要。
 
-### **2. langchain_core.document part**
+### **2. langchain_core.document**
 
 #### 2.1 BaseMedia
 
@@ -200,7 +204,9 @@ langchain 官方提到，对于其基础的 langchain-core 包，它可以完全
 
 但对于一些外来的、不属于其核心包的内容，它就不会进行反反序列化。官方给出的理由是可能会发生网络连接异常等问题，但其实最主要的核心考量还是为了防投毒。
 
-##### 6.3.2 Get LangChain namespaces (get_lc_namespace)
+##### 6.3.2 Get LangChain namespaces
+
+ (get_lc_namespace)
 
 ``` python
     @classmethod

@@ -5,13 +5,12 @@ import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 
-const posts = await getCollection('blog');
-const sortedPosts = posts.sort(
-  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
-);
+const posts = (await getCollection('blog'))
+  .filter((p) => p.data.section === 'framework')
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
 // Group by year
-const postsByYear = sortedPosts.reduce((acc: Record<string, typeof posts>, post) => {
+const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
   const year = post.data.pubDate.getFullYear().toString();
   if (!acc[year]) acc[year] = [];
   acc[year].push(post);

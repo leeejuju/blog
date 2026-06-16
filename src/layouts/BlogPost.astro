@@ -6,9 +6,30 @@ import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 
-type Props = CollectionEntry<'blog'>['data'];
+interface Props {
+  title: string;
+  description: string;
+  pubDate: Date;
+  updatedDate?: Date;
+  heroImage?: string;
+  section?: string;
+  categories?: string[];
+  relatedPosts?: CollectionEntry<'blog'>[];
+}
 
-const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
+const SECTION_INFO: Record<string, { label: string; url: string }> = {
+  framework:   { label: 'Framework',           url: '/' },
+  engineering: { label: 'paper & engineering', url: '/engineering/' },
+  eval:        { label: '测试',                url: '/eval/' },
+  infra:       { label: 'Infra',               url: '/infra/' },
+  memory:      { label: 'Memory',              url: '/memory/' },
+  rag:         { label: 'RAG',                 url: '/rag/' },
+};
+
+const { title, description, pubDate, updatedDate, heroImage, section, categories, relatedPosts } = Astro.props;
+const sec = section ? SECTION_INFO[section] : null;
+const cats: string[] = categories || [];
+const related: CollectionEntry<'blog'>[] = relatedPosts || [];
 ---
 
 <html lang="zh-CN">
@@ -27,11 +48,21 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
       <main class="post-main">
         <article>
           <div class="post-header">
+            {sec && (
+              <a class="section-breadcrumb" href={sec.url}>&larr; {sec.label}</a>
+            )}
             <h1 class="post-title">{title}</h1>
             <div class="post-meta">
               <FormattedDate date={pubDate} />
               {updatedDate && (
                 <span class="updated"> · 更新于 <FormattedDate date={updatedDate} /></span>
+              )}
+              {cats.length > 0 && (
+                <span class="post-tags">
+                  {cats.map((t: string) => (
+                    <span class="post-tag">{t}</span>
+                  ))}
+                </span>
               )}
             </div>
           </div>
@@ -40,6 +71,18 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
           </div>
         </article>
       </main>
+      {related.length > 0 && (
+        <aside class="related-sidebar">
+          <div class="related-title">相关文章</div>
+          <ul class="related-list">
+            {related.map((p) => (
+              <li>
+                <a href={`/blog/${p.id}/`}>{p.data.title}</a>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
     </div>
     <Footer />
   </body>
@@ -51,8 +94,8 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
   .post-layout {
     display: flex;
     justify-content: center;
-    gap: 2rem;
-    max-width: 1000px;
+    gap: 1.5rem;
+    max-width: 1280px;
     margin: 0 auto;
     padding: 2em 1em 4em 1em;
     animation: fadeIn 0.4s ease;
@@ -63,10 +106,10 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* ── TOC Sidebar ─────────────────────── */
+  /* ── TOC Sidebar (left) ─────────────── */
 
   .toc-sidebar {
-    width: 220px;
+    width: 200px;
     flex-shrink: 0;
     position: sticky;
     top: 72px;
@@ -122,7 +165,6 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
     border-left-color: var(--accent);
   }
 
-  /* h3 items indented */
   .toc-list a[data-level="3"] {
     padding-left: 22px;
     font-size: 0.82rem;
@@ -136,11 +178,12 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
     padding-left: 44px;
     font-size: 0.74rem;
   }
+
   /* ── Main content ────────────────────── */
 
   .post-main {
-    width: var(--max-width);
-    max-width: 100%;
+    flex: 1;
+    max-width: var(--max-width);
     min-width: 0;
   }
 
@@ -150,6 +193,19 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
     margin-bottom: 2.5rem;
     padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--border);
+  }
+
+  .section-breadcrumb {
+    display: inline-block;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-decoration: none;
+    margin-bottom: 0.8rem;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .section-breadcrumb:hover {
+    color: var(--accent-hover);
   }
 
   .post-title {
@@ -166,10 +222,76 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
     display: flex;
     align-items: center;
     gap: 0.4em;
+    flex-wrap: wrap;
   }
 
   .updated {
     font-style: italic;
+  }
+
+  .post-tags {
+    display: inline-flex;
+    gap: 0.4em;
+    margin-left: 0.3em;
+  }
+
+  .post-tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ── Related sidebar (right) ─────────── */
+
+  .related-sidebar {
+    width: 200px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 72px;
+    align-self: flex-start;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    padding-left: 0.5em;
+    border-left: 1px solid var(--border);
+  }
+
+  .related-title {
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 0.75em;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .related-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .related-list li {
+    margin-bottom: 6px;
+  }
+
+  .related-list a {
+    display: block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.83rem;
+    line-height: 1.45;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .related-list a:hover {
+    color: var(--heading);
+    background: var(--accent-light);
   }
 
   /* ── Prose (article body) ────────────── */
@@ -207,6 +329,12 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
   }
 
   /* ── Responsive ──────────────────────── */
+
+  @media (max-width: 1100px) {
+    .related-sidebar {
+      display: none;
+    }
+  }
 
   @media (max-width: 900px) {
     .toc-sidebar {

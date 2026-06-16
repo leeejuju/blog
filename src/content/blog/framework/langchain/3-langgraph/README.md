@@ -1,8 +1,10 @@
 ---
-title: "langgraph"
+title: "3. langgraph 源码"
 description: "langgraph  langchain 对于其 agent 执行逻辑的思考和重构，我倒是很好奇"
 pubDate: 2026-06-16
 section: framework
+categories:
+  - langchain
 ---
 
 langgraph  langchain 对于其 agent 执行逻辑的思考和重构，我倒是很好奇
@@ -59,16 +61,27 @@ TODO
 
 这里文档本身说了一个 ***Base class for all channels***
 
-#### 3.2 参数
+我倾向于把他定义为运行中状态的改变（基于参数），update 进行数据的转化
+Channel 类似信道的概念。
+
+就是面向 `Agent Runtime` 数据的不同行为，只不过抽象一个 BaseChannel 类
+
+首先定义期间数据变化的行为 copy，consume, finish，其实更像数据的操作行为的定义
+允许 state 参数再运行期间可以，复制，结束
+
+
+ 
+#### 3.1.1 参数
 
 1. key： 顾名思义是隶属于 channel 下参数的名称
 2. typ： 顾名思义是隶属于 channel 下参数的type
+3. 剩下的都是 copy，checkpoint， from_checkpoint，get，is_available，update，consume，finish 简单明了，即 channel 可以执行的操作
 
-#### 3.2 类方法
+#### 3.1.2 类方法
 
-##### 1. ValueType & UpdateType
+##### 3.1.3 ValueType & UpdateType
 
-规定了两个属性类的参数，这里先按下不表
+规定了两个属性类的参数，说是接受 -> 保存需要保存的内容到信道
 
 ``` python
 @property
@@ -82,9 +95,10 @@ def UpdateType(self) -> Any:
     """The type of the update received by the channel."""
 ```
 
-#### 2. checkpoint & from_checkpoint & get
-
+#### 3.1.4 checkpoint & from_checkpoint 
 这里是关于 checkpointer 的存取过程，关于 checkpointer 的详细定义请看 [checkpoint](#langgraphcheckpoint) 这是 langgraph 维护短期记忆的核心部分
+
+### 3.2 AnyValue
 
 ---
 
@@ -264,10 +278,9 @@ def _get_channel(
     return fallback
 ```
 
-他这个 `channel` 我在一开始始终没想明白是什么意思
+他这个 `channel` 我在一开始始终没想明白是什么意思，细说下来（又要说废话了）】
 
-
-这里我们要回到 [channels](#langgraphchannels) 看下
+1. Channel: 好比你继承 AgentState 的时候，有一个类是 MessagesState 主要的作用就是更新运行中的消息，然后窥一管而知全豹，顺着 [channels](#langgraph.channels) 的继承链去看，就会知道，
 
 ---
 
