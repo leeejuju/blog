@@ -128,6 +128,14 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
     font-size: 0.82rem;
   }
 
+  .toc-list a[data-level="4"] {
+    padding-left: 34px;
+    font-size: 0.78rem;
+  }
+  .toc-list a[data-level="5"] {
+    padding-left: 44px;
+    font-size: 0.74rem;
+  }
   /* ── Main content ────────────────────── */
 
   .post-main {
@@ -222,7 +230,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
   const tocList = document.getElementById('toc-list');
 
   if (article && tocList) {
-    const headings = article.querySelectorAll('h2, h3');
+    const headings = article.querySelectorAll('h2, h3, h4, h5');
     const tocItems: {id: string, text: string, level: string}[] = [];
 
     headings.forEach((h) => {
@@ -238,7 +246,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
         const a = document.createElement('a');
         a.href = `#${item.id}`;
         a.textContent = item.text;
-        a.setAttribute('data-level', item.level === 'h3' ? '3' : '2');
+        a.setAttribute('data-level', item.level === 'h5' ? '5' : item.level === 'h4' ? '4' : item.level === 'h3' ? '3' : '2');
         li.appendChild(a);
         tocList.appendChild(li);
       });

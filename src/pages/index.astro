@@ -34,7 +34,7 @@ const postsByYear = sortedPosts.reduce((acc: Record<string, typeof posts>, post)
 
       <div class="posts-timeline">
         {
-          Object.entries(postsByYear).map(([year, yearPosts]) => (
+          Object.keys(postsByYear).sort((a, b) => Number(b) - Number(a)).map((year) => { const yearPosts = postsByYear[year]; return (
             <div class="timeline-year-group">
               <h2 class="timeline-year">{year}</h2>
               <ul class="timeline-posts">
@@ -53,7 +53,7 @@ const postsByYear = sortedPosts.reduce((acc: Record<string, typeof posts>, post)
                 ))}
               </ul>
             </div>
-          ))
+          )})
         }
       </div>
     </main>

@@ -5,15 +5,32 @@ import Footer from '../../components/Footer.astro';
 import Header from '../../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
 
+const SECTION_LABELS: Record<string, string> = {
+  engineering: '工程实践',
+  eval: '基准评测',
+  memory: '记忆系统',
+  rag: 'RAG',
+};
+
 const posts = (await getCollection('blog'))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
-const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
+// Group by section → year
+const postsBySection = posts.reduce((acc: Record<string, Record<string, typeof posts>>, post) => {
+  const section = post.data.section || 'uncategorized';
   const year = post.data.pubDate.getFullYear().toString();
-  if (!acc[year]) acc[year] = [];
-  acc[year].push(post);
+  if (!acc[section]) acc[section] = {};
+  if (!acc[section][year]) acc[section][year] = [];
+  acc[section][year].push(post);
   return acc;
 }, {});
+
+// Sort sections by their most recent pubDate
+const sortedSections = Object.keys(postsBySection).sort((a, b) => {
+  const newestA = Math.max(...Object.values(postsBySection[a]).flat().map(p => p.data.pubDate.valueOf()));
+  const newestB = Math.max(...Object.values(postsBySection[b]).flat().map(p => p.data.pubDate.valueOf()));
+  return newestB - newestA;
+});
 ---
 
 <!doctype html>
@@ -28,26 +45,36 @@ const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
       <p class="section-desc">Agent 框架开发笔记、工具链踩坑与实战记录。</p>
       <div class="posts-timeline">
         {
-          Object.entries(postsByYear).map(([year, yearPosts]) => (
-            <div class="timeline-year-group">
-              <h2 class="timeline-year">{year}</h2>
-              <ul class="timeline-posts">
-                {yearPosts.map((post) => (
-                  <li class="timeline-post-item">
-                    <time class="timeline-post-date" datetime={post.data.pubDate.toISOString()}>
-                      {post.data.pubDate.toLocaleDateString('zh-CN', {
-                        month: '2-digit',
-                        day: '2-digit',
-                      })}
-                    </time>
-                    <a class="timeline-post-link" href={`/blog/${post.id}/`}>
-                      {post.data.title}
-                    </a>
-                  </li>
+          sortedSections.map((section) => {
+            const years = postsBySection[section];
+            const label = SECTION_LABELS[section] || section;
+            const sortedYears = Object.keys(years).sort((a, b) => Number(b) - Number(a));
+            return (
+              <section class="section-group">
+                <h2 class="section-title">{label}</h2>
+                {sortedYears.map((year) => (
+                  <div class="timeline-year-group">
+                    <h3 class="timeline-year">{year}</h3>
+                    <ul class="timeline-posts">
+                      {years[year].map((post) => (
+                        <li class="timeline-post-item">
+                          <time class="timeline-post-date" datetime={post.data.pubDate.toISOString()}>
+                            {post.data.pubDate.toLocaleDateString('zh-CN', {
+                              month: '2-digit',
+                              day: '2-digit',
+                            })}
+                          </time>
+                          <a class="timeline-post-link" href={`/blog/${post.id}/`}>
+                            {post.data.title}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
-            </div>
-          ))
+              </section>
+            );
+          })
         }
       </div>
     </main>
@@ -72,6 +99,21 @@ const postsByYear = posts.reduce((acc: Record<string, typeof posts>, post) => {
     display: flex;
     flex-direction: column;
     gap: 1.8rem;
+  }
+
+  .section-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--accent);
   }
 
   .timeline-year {
