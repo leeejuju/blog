@@ -1,8 +1,10 @@
 // @ts-check
 
 import mdx from '@astrojs/mdx';
+import { unified } from '@astrojs/markdown-remark';
 import sitemap from '@astrojs/sitemap';
-import { defineConfig, fontProviders } from 'astro/config';
+import { defineConfig } from 'astro/config';
+import rehypeSlug from 'rehype-slug';
 
 // https://astro.build/config
 export default defineConfig({
@@ -12,7 +14,9 @@ export default defineConfig({
 		shikiConfig: {
 			theme: 'github-dark',
 		},
-		rehypePlugins: [['rehype-slug', {}]],
+		processor: unified({
+			rehypePlugins: [rehypeSlug],
+		}),
 	},
 	redirects: {
 		// ──  section landing ──────────────────────

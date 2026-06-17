@@ -95,7 +95,7 @@ const related: CollectionEntry<'blog'>[] = relatedPosts || [];
     display: flex;
     justify-content: center;
     gap: 1.5rem;
-    max-width: 1280px;
+    max-width: 1500px;
     margin: 0 auto;
     padding: 2em 1em 4em 1em;
     animation: fadeIn 0.4s ease;
@@ -109,7 +109,7 @@ const related: CollectionEntry<'blog'>[] = relatedPosts || [];
   /* ── TOC Sidebar (left) ─────────────── */
 
   .toc-sidebar {
-    width: 200px;
+    width: 380px;
     flex-shrink: 0;
     position: sticky;
     top: 72px;
@@ -117,6 +117,33 @@ const related: CollectionEntry<'blog'>[] = relatedPosts || [];
     max-height: calc(100vh - 100px);
     overflow-y: auto;
     padding-right: 0.5em;
+  }
+
+  .toc-sidebar,
+  .related-sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-accent) transparent;
+  }
+
+  .toc-sidebar::-webkit-scrollbar,
+  .related-sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .toc-sidebar::-webkit-scrollbar-track,
+  .related-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .toc-sidebar::-webkit-scrollbar-thumb,
+  .related-sidebar::-webkit-scrollbar-thumb {
+    background: var(--border-accent);
+    border-radius: 999px;
+  }
+
+  .toc-sidebar::-webkit-scrollbar-corner,
+  .related-sidebar::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   .toc-nav {
@@ -138,44 +165,83 @@ const related: CollectionEntry<'blog'>[] = relatedPosts || [];
     margin: 0;
   }
 
-  .toc-list li {
+  .toc-list :global(.toc-item) {
     margin-bottom: 2px;
   }
 
-  .toc-list a {
+  .toc-list :global(.toc-children) {
+    list-style: none;
+    margin: 1px 0 0 0;
+    padding: 0;
+  }
+
+  .toc-list :global(.toc-children > .toc-item) {
+    display: none;
+  }
+
+  .toc-list :global(.toc-item.is-expanded > .toc-children > .toc-item),
+  .toc-list :global(.toc-item.active-branch > .toc-children > .toc-item) {
     display: block;
+  }
+
+  .toc-list :global(.toc-item.is-collapsed > .toc-children > .toc-item) {
+    display: none;
+  }
+
+  .toc-list :global(.toc-row) {
+    display: block;
+  }
+
+  .toc-list :global(.toc-row a) {
+    display: block;
+    min-width: 0;
     padding: 3px 8px;
     border-radius: 4px;
     color: var(--text-muted);
     text-decoration: none;
     font-size: 0.85rem;
     line-height: 1.5;
+    overflow-wrap: anywhere;
     transition: color 0.15s, background 0.15s;
     border-left: 2px solid transparent;
   }
 
-  .toc-list a:hover {
+  .toc-list :global(.toc-row a:hover) {
     color: var(--heading);
     background: var(--accent-light);
   }
 
-  .toc-list a.active {
+  .toc-list :global(.toc-item.has-children > .toc-row a) {
+    cursor: pointer;
+  }
+
+  .toc-list :global(.toc-row a.active) {
     color: var(--accent);
     background: var(--accent-light);
     border-left-color: var(--accent);
   }
 
-  .toc-list a[data-level="3"] {
-    padding-left: 22px;
+  .toc-list :global(.toc-item[data-depth="3"] > .toc-row) {
+    padding-left: 14px;
+  }
+
+  .toc-list :global(.toc-item[data-depth="4"] > .toc-row) {
+    padding-left: 30px;
+  }
+
+  .toc-list :global(.toc-item[data-depth="5"] > .toc-row) {
+    padding-left: 46px;
+  }
+
+  .toc-list :global(.toc-item[data-depth="3"] > .toc-row a) {
     font-size: 0.82rem;
   }
 
-  .toc-list a[data-level="4"] {
-    padding-left: 34px;
+  .toc-list :global(.toc-item[data-depth="4"] > .toc-row a) {
     font-size: 0.78rem;
   }
-  .toc-list a[data-level="5"] {
-    padding-left: 44px;
+
+  .toc-list :global(.toc-item[data-depth="5"] > .toc-row a) {
     font-size: 0.74rem;
   }
 
@@ -353,48 +419,179 @@ const related: CollectionEntry<'blog'>[] = relatedPosts || [];
 </style>
 
 <script>
-  // Build TOC from article headings
+  type TocItem = {
+    id: string;
+    text: string;
+    depth: number;
+    children: TocItem[];
+  };
+
   const article = document.getElementById('article-body');
   const tocList = document.getElementById('toc-list');
 
   if (article && tocList) {
-    const headings = article.querySelectorAll('h2, h3, h4, h5');
-    const tocItems: {id: string, text: string, level: string}[] = [];
+    const headings = Array.from(article.querySelectorAll<HTMLHeadingElement>('h2, h3, h4, h5'));
+    const tocItems = headings
+      .map((heading) => {
+        const id = heading.getAttribute('id');
+        const depth = Number(heading.tagName.slice(1));
 
-    headings.forEach((h) => {
-      const id = h.getAttribute('id');
-      if (id) {
-        tocItems.push({ id, text: h.textContent || '', level: h.tagName.toLowerCase() });
-      }
-    });
+        if (!id) {
+          return null;
+        }
 
-    if (tocItems.length > 0) {
-      tocItems.forEach((item) => {
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = `#${item.id}`;
-        a.textContent = item.text;
-        a.setAttribute('data-level', item.level === 'h5' ? '5' : item.level === 'h4' ? '4' : item.level === 'h3' ? '3' : '2');
-        li.appendChild(a);
-        tocList.appendChild(li);
+        return {
+          id,
+          text: heading.textContent || '',
+          depth,
+          children: [],
+        };
+      })
+      .filter((item): item is TocItem => item !== null);
+
+    const buildTocTree = (items: TocItem[]) => {
+      const roots: TocItem[] = [];
+      const stack: TocItem[] = [];
+
+      items.forEach((item) => {
+        while (stack.length > 0 && stack[stack.length - 1].depth >= item.depth) {
+          stack.pop();
+        }
+
+        const parent = stack[stack.length - 1];
+        if (parent) {
+          parent.children.push(item);
+        } else {
+          roots.push(item);
+        }
+
+        stack.push(item);
       });
 
-      // Scroll spy: highlight current section
-      const tocAnchors = tocList.querySelectorAll('a');
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            const anchor = tocList.querySelector(`a[href="#${entry.target.id}"]`);
-            if (entry.isIntersecting) {
-              tocAnchors.forEach((a) => a.classList.remove('active'));
-              anchor?.classList.add('active');
-            }
-          });
-        },
-        { rootMargin: '-80px 0px -70% 0px' }
-      );
+      return roots;
+    };
 
-      headings.forEach((h) => observer.observe(h));
+    const numberedTitlePattern = /^\d+(?:[.．]\d+)*[.．]?\s+/;
+    const isNumberedTitle = (item: TocItem) => numberedTitlePattern.test(item.text.trim());
+
+    const setExpanded = (item: HTMLElement, expanded: boolean, force = false) => {
+      if (expanded && item.classList.contains('is-collapsed') && !force) {
+        return;
+      }
+
+      item.classList.toggle('is-expanded', expanded);
+      if (!expanded || force) {
+        item.classList.toggle('is-collapsed', !expanded);
+      }
+    };
+
+    const anchorById = new Map<string, HTMLAnchorElement>();
+    const itemById = new Map<string, HTMLElement>();
+
+    const createTocItem = (item: TocItem) => {
+      const li = document.createElement('li');
+      li.className = 'toc-item';
+      li.dataset.depth = String(item.depth);
+      li.dataset.target = item.id;
+      li.classList.toggle('has-children', item.children.length > 0);
+
+      const row = document.createElement('div');
+      row.className = 'toc-row';
+
+      const anchor = document.createElement('a');
+      anchor.href = `#${item.id}`;
+      anchor.textContent = item.text;
+      anchor.addEventListener('click', () => {
+        if (item.children.length > 0) {
+          setExpanded(li, !li.classList.contains('is-expanded'), true);
+        }
+      });
+      row.appendChild(anchor);
+      li.appendChild(row);
+
+      anchorById.set(item.id, anchor);
+      itemById.set(item.id, li);
+
+      if (item.children.length > 0) {
+        const children = document.createElement('ul');
+        children.className = 'toc-children';
+        item.children.forEach((child) => {
+          children.appendChild(createTocItem(child));
+        });
+        li.appendChild(children);
+      }
+
+      return li;
+    };
+
+    if (tocItems.length > 0) {
+      const tocRoots = buildTocTree(tocItems);
+      const visibleRoots = tocRoots.some(isNumberedTitle)
+        ? tocRoots.filter(isNumberedTitle)
+        : tocRoots;
+
+      visibleRoots.forEach((item) => {
+        tocList.appendChild(createTocItem(item));
+      });
+
+      const clearActiveState = () => {
+        anchorById.forEach((anchor) => anchor.classList.remove('active'));
+        itemById.forEach((item) => item.classList.remove('active-branch'));
+      };
+
+      const setActiveHeading = (id: string) => {
+        const anchor = anchorById.get(id);
+        if (!anchor) {
+          return;
+        }
+
+        clearActiveState();
+        anchor.classList.add('active');
+
+        let current = anchor.closest<HTMLElement>('.toc-item')?.parentElement?.closest<HTMLElement>('.toc-item') || null;
+        while (current) {
+          current.classList.add('active-branch');
+          setExpanded(current, true);
+          current = current.parentElement?.closest<HTMLElement>('.toc-item') || null;
+        }
+      };
+
+      let activeId = '';
+      let ticking = false;
+
+      const updateActiveHeading = () => {
+        const offset = 100;
+        let currentHeading = headings[0];
+
+        for (const heading of headings) {
+          if (heading.getBoundingClientRect().top <= offset) {
+            currentHeading = heading;
+          } else {
+            break;
+          }
+        }
+
+        if (currentHeading?.id && currentHeading.id !== activeId) {
+          activeId = currentHeading.id;
+          setActiveHeading(activeId);
+        }
+      };
+
+      const requestActiveHeadingUpdate = () => {
+        if (ticking) {
+          return;
+        }
+
+        ticking = true;
+        window.requestAnimationFrame(() => {
+          ticking = false;
+          updateActiveHeading();
+        });
+      };
+
+      window.addEventListener('scroll', requestActiveHeadingUpdate, { passive: true });
+      window.addEventListener('resize', requestActiveHeadingUpdate);
+      updateActiveHeading();
     } else {
       document.querySelector('.toc-sidebar')?.remove();
     }
