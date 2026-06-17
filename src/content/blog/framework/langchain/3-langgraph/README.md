@@ -61,8 +61,8 @@ TODO
 
 这里文档本身说了一个 ***Base class for all channels***
 
-我倾向于把他定义为运行中状态的改变（基于参数），update 进行数据的转化
-Channel 类似信道的概念。
+Channel 类似信道的概念。我倾向于把他定义为运行中状态的改变（基于参数），update 进行数据的转化
+
 
 对于继承 `BaseChannel` 的类，规定只有两种参数，`typ`, `key` （比如定义的 x:int）, 子类根据自己的职责定位添加自己的属性值，同时固定持有信道的基础属性
 一方面可以自己添加属性去对参数管理。一方面也可持有父类的属性去进行操作。
@@ -337,7 +337,11 @@ def update(self, values: Sequence[Value | list[Value]]) -> bool:
 
 这个和之前的 `EphemralVlaue` 基本一致，但是完全不经过 `checkpointer`，就不说了
 
-总结下来，channel 对运行中的状态，进行了一系列的规划，比如是参数是丢弃？堆叠? 更新？ 这一些列的操作，同时也规定了其 checkpointer 类要保存的最小单元
+总结下来，其实 Channel 本身就是用户定义的实体类的各个参数，每一个参数都是一个 Channel。
+
+它为每一个参数都规划了行为（比如是丢弃还是其他操作）。从 checkpoint 的行为中可以看到，系统为每一个参数都设置了一个版本号。这是合理的，因为并非所有参数都需要更新，所以它是根据已经变化的参数类型来去判断的。
+
+即通过各个 channel (参数) 对运行中的状态，进行了一系列的规划，比如是参数是丢弃？堆叠? 更新？ 这一些列的操作，同时也规定了其 checkpointer 类要保存的最小单元
 
 ---
 
@@ -425,9 +429,29 @@ class Checkpoint(TypedDict):
 > id: 用int 规定所处阶段，-1标识输入，0标识进入 loop, ...代表后续的所有阶段
 > ts: checkpointer 创建的时间戳
 > channel_values: 看之前的channel 
-> channel_versions: 
-> versions_seen: 
-> versions_seen: 
+> channel_versions: 生成 `checkponiter` 时的 channel_versions, 这他妈文档写的够烂的，我操，他妈的，应该是 the version of the channels at the time of the checkpoint recreated or created. 它的格式应该是：Key 是 channel names，参数名， value 就是版本号，具体是社么样子的 string 再说
+> versions_seen: 版本 形如 `dict[key,dict[key, value]] channel name  to version seen
+> updated_channels: 记录当前 checkpointer 中，更新过的信道（参数）
+
+#### base.init.CheckpointTuple
+
+> CheckpointTuple 的元组
+
+``` python 
+class CheckpointTuple(NamedTuple):
+    """A tuple containing a checkpoint and its associated data."""
+
+    config: RunnableConfig
+    checkpoint: Checkpoint
+    metadata: CheckpointMetadata
+    parent_config: RunnableConfig | None = None
+    pending_writes: list[PendingWrite] | None = None
+```
+
+#### base.init.BaseCheckpointSaver
+
+> Checkpointer 的基础属性和行为
+
 
 
 ### InMemorySaver
