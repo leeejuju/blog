@@ -437,7 +437,7 @@ class Checkpoint(TypedDict):
 
 > CheckpointTuple 的元组
 
-``` python 
+``` python
 class CheckpointTuple(NamedTuple):
     """A tuple containing a checkpoint and its associated data."""
 
@@ -448,16 +448,237 @@ class CheckpointTuple(NamedTuple):
     pending_writes: list[PendingWrite] | None = None
 ```
 
+1. `config` 凡是 `RunnableConfig` 都是可控制 langchain 运行的一堆参数， 什么控制 `callback`, 可配置的 configurable 参数，比如替换模型啥的，反正是开发者可自由支配的参数
+2. 剩下几个就不说了
+
 #### base.init.BaseCheckpointSaver
+
+##### BaseCheckpointSaver
 
 > Checkpointer 的基础属性和行为
 
+1. **get & get_tuple & aget & aget_tuple**：这里都是异步的操作取获得 `checkpointer` 具体要看子类的的实现方式
+2. **list & alist & put & aput & put_writes & aput_writes**：同步/异步的获得，存储检查点，到 `postgres` 我具体说
+3. **delete_thread & adelete_thread**：对话线程删除
+
+### memory.__init__.InMemorySaver
+
+> 这是个短期记忆的 saver 之前看官方都不推荐用，说是测试用
+> 对于测试来说，也可看的
+
+``` python
+
+class InMemorySaver(
+    BaseCheckpointSaver[str], AbstractContextManager, AbstractAsyncContextManager
+):
+    """An in-memory checkpoint saver.
+
+    This checkpoint saver stores checkpoints in memory using a defaultdict.
+
+    Note:
+        Only use `InMemorySaver` for debugging or testing purposes.
+        For production use cases we recommend installing [langgraph-checkpoint-postgres](https://pypi.org/project/langgraph-checkpoint-postgres/) and using `PostgresSaver` / `AsyncPostgresSaver`.
+
+        If you are using LangSmith Deployment, no checkpointer needs to be specified. The correct managed checkpointer will be used automatically.
+
+    Args:
+        serde: The serializer to use for serializing and deserializing checkpoints.
+
+    Examples:
+
+            import asyncio
+
+            from langgraph.checkpoint.memory import InMemorySaver
+            from langgraph.graph import StateGraph
+
+            builder = StateGraph(int)
+            builder.add_node("add_one", lambda x: x + 1)
+            builder.set_entry_point("add_one")
+            builder.set_finish_point("add_one")
+
+            memory = InMemorySaver()
+            graph = builder.compile(checkpointer=memory)
+            coro = graph.ainvoke(1, {"configurable": {"thread_id": "thread-1"}})
+            asyncio.run(coro)  # Output: 2
+    """
+
+    # thread ID ->  checkpoint NS -> checkpoint ID -> checkpoint mapping
+    storage: defaultdict[
+        str,
+        dict[str, dict[str, tuple[tuple[str, bytes], tuple[str, bytes], str | None]]],
+    ]
+    # (thread ID, checkpoint NS, checkpoint ID) -> (task ID, write idx)
+    writes: defaultdict[
+        tuple[str, str, str],
+        dict[tuple[str, int], tuple[str, str, tuple[str, bytes], str]],
+    ]
+    blobs: dict[
+        tuple[
+            str, str, str, str | int | float
+        ],  # thread id, checkpoint ns, channel, version
+        tuple[str, bytes],
+    ]
+
+    def __init__(
+        self,
+        *,
+        serde: SerializerProtocol | None = None,
+        factory: type[defaultdict] = defaultdict,
+    ) -> None:
+        super().__init__(serde=serde)
+        self.storage = factory(lambda: defaultdict(dict))
+        self.writes = factory(dict)
+        self.blobs = factory()
+        self.stack = ExitStack()
+        if factory is not defaultdict:
+            self.stack.enter_context(self.storage)  # type: ignore[arg-type]
+            self.stack.enter_context(self.writes)  # type: ignore[arg-type]
+            self.stack.enter_context(self.blobs)  # type: ignore[arg-type]
+```
+
+### memory的 pipeline
+
+> 根据 memory 的流程解读, 顺序是，先 get，再执行，再 put；中间还可能穿插 put_writes。
 
 
-### InMemorySaver
+#### memory.__init__.InMemorySaver.get_tuple
 
-这是个短期记忆的 saver 之前看官方都不推荐用，说是测试用还行
+``` python
+def get_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
+        """Get a checkpoint tuple from the in-memory storage.
 
+        This method retrieves a checkpoint tuple from the in-memory storage based on the
+        provided config. If the config contains a `checkpoint_id` key, the checkpoint with
+        the matching thread ID and timestamp is retrieved. Otherwise, the latest checkpoint
+        for the given thread ID is retrieved.
+
+        Args:
+            config: The config to use for retrieving the checkpoint.
+
+        Returns:
+            The retrieved checkpoint tuple, or None if no matching checkpoint was found.
+        """
+        thread_id: str = config["configurable"]["thread_id"]
+        checkpoint_ns: str = config["configurable"].get("checkpoint_ns", "")
+        if checkpoint_id := get_checkpoint_id(config):
+            if saved := self.storage[thread_id][checkpoint_ns].get(checkpoint_id):
+                checkpoint, metadata, parent_checkpoint_id = saved
+                writes = self.writes[(thread_id, checkpoint_ns, checkpoint_id)].values()
+                checkpoint_: Checkpoint = self.serde.loads_typed(checkpoint)
+                return CheckpointTuple(
+                    config=config,
+                    checkpoint={
+                        **checkpoint_,
+                        "channel_values": self._load_blobs(
+                            thread_id, checkpoint_ns, checkpoint_["channel_versions"]
+                        ),
+                    },
+                    metadata=self.serde.loads_typed(metadata),
+                    pending_writes=[
+                        (id, c, self.serde.loads_typed(v)) for id, c, v, _ in writes
+                    ],
+                    parent_config=(
+                        {
+                            "configurable": {
+                                "thread_id": thread_id,
+                                "checkpoint_ns": checkpoint_ns,
+                                "checkpoint_id": parent_checkpoint_id,
+                            }
+                        }
+                        if parent_checkpoint_id
+                        else None
+                    ),
+                )
+        else:
+            if checkpoints := self.storage[thread_id][checkpoint_ns]:
+                checkpoint_id = max(checkpoints.keys())
+                checkpoint, metadata, parent_checkpoint_id = checkpoints[checkpoint_id]
+                writes = self.writes[(thread_id, checkpoint_ns, checkpoint_id)].values()
+                checkpoint_ = self.serde.loads_typed(checkpoint)
+                return CheckpointTuple(
+                    config={
+                        "configurable": {
+                            "thread_id": thread_id,
+                            "checkpoint_ns": checkpoint_ns,
+                            "checkpoint_id": checkpoint_id,
+                        }
+                    },
+                    checkpoint={
+                        **checkpoint_,
+                        "channel_values": self._load_blobs(
+                            thread_id, checkpoint_ns, checkpoint_["channel_versions"]
+                        ),
+                    },
+                    metadata=self.serde.loads_typed(metadata),
+                    pending_writes=[
+                        (id, c, self.serde.loads_typed(v)) for id, c, v, _ in writes
+                    ],
+                    parent_config=(
+                        {
+                            "configurable": {
+                                "thread_id": thread_id,
+                                "checkpoint_ns": checkpoint_ns,
+                                "checkpoint_id": parent_checkpoint_id,
+                            }
+                        }
+                        if parent_checkpoint_id
+                        else None
+                    ),
+                )
+```
+
+#### memory.__init__.InMemorySaver.put
+
+可以看下短期记忆的行为存储行为是什么, 让我先根据参数以及之前的对于参数规定猜测下。
+只说这个 `new_versions: ChannelVersions` 之前，我写过，channel 其实就是参数本身，但是在 agent 中，参数运行的时候，并不是所有参数都需要更新，所以对每个参数都单独设立了 version, 所以这个会整合进 Checkpint, so let resume
+
+``` python
+    def put(
+        self,
+        config: RunnableConfig,
+        checkpoint: Checkpoint,
+        metadata: CheckpointMetadata,
+        new_versions: ChannelVersions,
+    ) -> RunnableConfig:
+        """Save a checkpoint to the in-memory storage.
+
+        This method saves a checkpoint to the in-memory storage. The checkpoint is associated
+        with the provided config.
+
+        Args:
+            config: The config to associate with the checkpoint.
+            checkpoint: The checkpoint to save.
+            metadata: Additional metadata to save with the checkpoint.
+            new_versions: New versions as of this write
+
+        Returns:
+            RunnableConfig: The updated config containing the saved checkpoint's timestamp.
+        """
+        c = checkpoint.copy()
+        thread_id = config["configurable"]["thread_id"]
+        checkpoint_ns = config["configurable"]["checkpoint_ns"]
+        values: dict[str, Any] = c.pop("channel_values")  # type: ignore[misc]
+        for k, v in new_versions.items():
+            self.blobs[(thread_id, checkpoint_ns, k, v)] = (
+                self.serde.dumps_typed(values[k]) if k in values else ("empty", b"")
+            )
+        self.storage[thread_id][checkpoint_ns].update(
+            {
+                checkpoint["id"]: (
+                    self.serde.dumps_typed(c),
+                    self.serde.dumps_typed(get_checkpoint_metadata(config, metadata)),
+                    config["configurable"].get("checkpoint_id"),  # parent
+                )
+            }
+        )
+        return {
+            "configurable": {
+                "thread_id": thread_id,
+                "checkpoint_ns": checkpoint_ns,
+                "checkpoint_id": checkpoint["id"],
+            }
+        }
+```
 ###
 
 源码位置：`.venv/Lib/site-packages/langgraph/checkpoint/`
