@@ -1,5 +1,5 @@
 ---
-title: "1. langchain-core 源码"
+title: "源码阅读: langchain-core"
 description: "langchain-core 是 LangChain 的核心包。(之前)"
 pubDate: 2026-03-10
 section: framework

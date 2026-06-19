@@ -1,5 +1,5 @@
 ---
-title: "Anthropic Building Effective Agents"
+title: "Engineering Article: Anthropic Building Effective Agents"
 description: "解读 Anthropic 多 Agent 研究系统的设计原则：Orchestrator 模式、并行检索、任务分解、工具设计等 7 个关键实践。"
 pubDate: 2026-05-13
 updatedDate: 2026-05-24

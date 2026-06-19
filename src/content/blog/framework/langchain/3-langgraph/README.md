@@ -1,5 +1,5 @@
 ---
-title: "3. langgraph 源码"
+title: "源码阅读: langgraph 源码"
 description: "langgraph  langchain 对于其 agent 执行逻辑的思考和重构，我倒是很好奇"
 pubDate: 2026-06-16
 section: framework
