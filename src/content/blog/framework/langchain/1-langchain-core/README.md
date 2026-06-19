@@ -1,7 +1,7 @@
 ---
 title: "1. langchain-core 源码"
 description: "langchain-core 是 LangChain 的核心包。(之前)"
-pubDate: 2026-05-16
+pubDate: 2026-03-10
 section: framework
 categories:
   - langchain

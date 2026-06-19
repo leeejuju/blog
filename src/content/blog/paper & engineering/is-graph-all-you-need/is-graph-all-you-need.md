@@ -1,5 +1,5 @@
 ---
-title: "论文笔记：Is Graph All You Need?"
+title: "Is Graph All You Need?"
 description: "基于图的 IR 检索 vs Grep vs 向量 RAG，在 Agent Search 场景下的效果对比，以及 Chronos 框架的设计思路。"
 pubDate: 2026-05-31
 section: engineering
