@@ -5,6 +5,17 @@ dist
 # dependencies
 node_modules
 
+# local Python / uv source-reading env
+.venv/
+.venv-*/
+.python-version
+uv.lock
+.uv-cache/
+__pycache__/
+*.py[cod]
+third_party/*
+test/*
+
 # env
 .env
 .env.*

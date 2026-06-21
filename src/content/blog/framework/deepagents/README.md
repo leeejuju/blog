@@ -8,7 +8,7 @@ categories:
 ---
 
 
-# Middleware 
+## Middleware 
 
 如果你看过之前 LangChain 本身的 Middleware 的一些东西，其实就能理解。
 
@@ -18,7 +18,7 @@ categories:
 3. 顺序执行
 
 
-# Backends
+## Backends
 
 属于 LangChain 的 DeepAgents 在实践中的一个扩充体系。它主要为 Medwell 提供了一些执行任务的空间。
 
@@ -48,6 +48,19 @@ __all__ = [
 ```
 
 然后在 backend context 和 backend protocol 里面集成了，因为我之前说了，它是属于给 Agent 提供一个执行任务的空间，所以它规定了一些基本的操作，比如说 ls、read、update 这些内容。
+
+
+### Backends.CompositeBackends
+
+> 其实这就是个路由器，根据 `prefix` 把任务导入到正确的 `backends`
+
+
+
+
+
+
+
+
 
 
 
