@@ -980,6 +980,249 @@ def _get_channel(
 
 ---
 
+### add_node
+
+在 `create_agent` 方法中，agent 对于 `before/after/agent/model`等等中间件，通过 `add_node` 以及 `add_edage` 方法进行了组合，
+其中 `add_node` 是添加可执行节点，`add_edage` 则是添加可执行的路径（即比如middleware执行顺序是 before_Agent->beforemodel等）。但是具体他们是怎么组合的呢？
+
+``` python
+def add_node(
+        self,
+        node: str | StateNode[NodeInputT, ContextT],
+        action: StateNode[NodeInputT, ContextT] | None = None,
+        *,
+        defer: bool = False,
+        metadata: dict[str, Any] | None = None,
+        input_schema: type[NodeInputT] | None = None,
+        retry_policy: RetryPolicy | Sequence[RetryPolicy] | None = None,
+        cache_policy: CachePolicy | None = None,
+        destinations: dict[str, str] | tuple[str, ...] | None = None,
+        **kwargs: Unpack[DeprecatedKwargs],
+    ) -> Self:
+        """Add a new node to the `StateGraph`.
+
+        Args:
+            node: The function or runnable this node will run.
+
+                If a string is provided, it will be used as the node name, and action will be used as the function or runnable.
+            action: The action associated with the node.
+                Will be used as the node function or runnable if `node` is a string (node name).
+            defer: Whether to defer the execution of the node until the run is about to end.
+            metadata: The metadata associated with the node.
+            input_schema: The input schema for the node. (Default: the graph's state schema)
+            retry_policy: The retry policy for the node.
+
+                If a sequence is provided, the first matching policy will be applied.
+            cache_policy: The cache policy for the node.
+            destinations: Destinations that indicate where a node can route to.
+
+                Useful for edgeless graphs with nodes that return `Command` objects.
+
+                If a `dict` is provided, the keys will be used as the target node names and the values will be used as the labels for the edges.
+
+                If a `tuple` is provided, the values will be used as the target node names.
+
+                !!! note
+
+                    This is only used for graph rendering and doesn't have any effect on the graph execution.
+
+        Example:
+            ```python
+            from typing_extensions import TypedDict
+
+            from langchain_core.runnables import RunnableConfig
+            from langgraph.graph import START, StateGraph
+
+
+            class State(TypedDict):
+                x: int
+
+
+            def my_node(state: State, config: RunnableConfig) -> State:
+                return {"x": state["x"] + 1}
+
+
+            builder = StateGraph(State)
+            builder.add_node(my_node)  # node name will be 'my_node'
+            builder.add_edge(START, "my_node")
+            graph = builder.compile()
+            graph.invoke({"x": 1})
+            # {'x': 2}
+            ```
+
+        Example: Customize the name:
+            ```python
+            builder = StateGraph(State)
+            builder.add_node("my_fair_node", my_node)
+            builder.add_edge(START, "my_fair_node")
+            graph = builder.compile()
+            graph.invoke({"x": 1})
+            # {'x': 2}
+            ```
+
+        Returns:
+            Self: The instance of the `StateGraph`, allowing for method chaining.
+        """
+        if (retry := kwargs.get("retry", MISSING)) is not MISSING:
+            warnings.warn(
+                "`retry` is deprecated and will be removed. Please use `retry_policy` instead.",
+                category=LangGraphDeprecatedSinceV05,
+            )
+            if retry_policy is None:
+                retry_policy = retry  # type: ignore[assignment]
+
+        if (input_ := kwargs.get("input", MISSING)) is not MISSING:
+            warnings.warn(
+                "`input` is deprecated and will be removed. Please use `input_schema` instead.",
+                category=LangGraphDeprecatedSinceV05,
+            )
+            if input_schema is None:
+                input_schema = cast(type[NodeInputT] | None, input_)
+
+        if not isinstance(node, str):
+            action = node
+            if isinstance(action, Runnable):
+                node = action.get_name()
+            else:
+                node = getattr(action, "__name__", action.__class__.__name__)
+            if node is None:
+                raise ValueError(
+                    "Node name must be provided if action is not a function"
+                )
+        if self.compiled:
+            logger.warning(
+                "Adding a node to a graph that has already been compiled. This will "
+                "not be reflected in the compiled graph."
+            )
+        if not isinstance(node, str):
+            action = node
+            node = cast(str, getattr(action, "name", getattr(action, "__name__", None)))
+            if node is None:
+                raise ValueError(
+                    "Node name must be provided if action is not a function"
+                )
+        if action is None:
+            raise RuntimeError
+        if node in self.nodes:
+            raise ValueError(f"Node `{node}` already present.")
+        if node == END or node == START:
+            raise ValueError(f"Node `{node}` is reserved.")
+
+        for character in (NS_SEP, NS_END):
+            if character in node:
+                raise ValueError(
+                    f"'{character}' is a reserved character and is not allowed in the node names."
+                )
+
+        inferred_input_schema = None
+
+        ends: tuple[str, ...] | dict[str, str] = EMPTY_SEQ
+        try:
+            if (
+                isfunction(action)
+                or ismethod(action)
+                or ismethod(getattr(action, "__call__", None))
+            ) and (
+                hints := get_type_hints(getattr(action, "__call__"))
+                or get_type_hints(action)
+            ):
+                if input_schema is None:
+                    first_parameter_name = next(
+                        iter(
+                            inspect.signature(
+                                cast(FunctionType, action)
+                            ).parameters.keys()
+                        )
+                    )
+                    if input_hint := hints.get(first_parameter_name):
+                        if isinstance(input_hint, type) and get_type_hints(input_hint):
+                            inferred_input_schema = input_hint
+                if rtn := hints.get("return"):
+                    # Handle Union types
+                    rtn_origin = get_origin(rtn)
+                    if rtn_origin is Union:
+                        rtn_args = get_args(rtn)
+                        # Look for Command in the union
+                        for arg in rtn_args:
+                            arg_origin = get_origin(arg)
+                            if arg_origin is Command:
+                                rtn = arg
+                                rtn_origin = arg_origin
+                                break
+
+                    # Check if it's a Command type
+                    if (
+                        rtn_origin is Command
+                        and (rargs := get_args(rtn))
+                        and get_origin(rargs[0]) is Literal
+                        and (vals := get_args(rargs[0]))
+                    ):
+                        ends = vals
+        except (NameError, TypeError, StopIteration):
+            pass
+
+        if destinations is not None:
+            ends = destinations
+
+        if input_schema is not None:
+            self.nodes[node] = StateNodeSpec[NodeInputT, ContextT](
+                coerce_to_runnable(action, name=node, trace=False),  # type: ignore[arg-type]
+                metadata,
+                input_schema=input_schema,
+                retry_policy=retry_policy,
+                cache_policy=cache_policy,
+                ends=ends,
+                defer=defer,
+            )
+        elif inferred_input_schema is not None:
+            self.nodes[node] = StateNodeSpec(
+                coerce_to_runnable(action, name=node, trace=False),  # type: ignore[arg-type]
+                metadata,
+                input_schema=inferred_input_schema,
+                retry_policy=retry_policy,
+                cache_policy=cache_policy,
+                ends=ends,
+                defer=defer,
+            )
+        else:
+            self.nodes[node] = StateNodeSpec[StateT, ContextT](
+                coerce_to_runnable(action, name=node, trace=False),  # type: ignore[arg-type]
+                metadata,
+                input_schema=self.state_schema,
+                retry_policy=retry_policy,
+                cache_policy=cache_policy,
+                ends=ends,
+                defer=defer,
+            )
+
+        input_schema = input_schema or inferred_input_schema
+        if input_schema is not None:
+            self._add_schema(input_schema)
+
+        return self
+
+```
+
+`add_node` 用于把可执行StateGraph 定义的 node 节点容器中。并返回一个当前的实例对象
+`add_node` 的核心职责就是把执行节点封装为StateNode的类型，同时把可执行节点的函数转为 `Runnale` 对象，附带该节点的走向，元数据等等，最主要的一点是 Runnble对象支持 invoke和ainvoke对象, 用 `asyncio` 的 `run_in_executor` 进行封装, 针对input的state，没输入直接从Graph的SatateSchema 拿，如果规定了自己的参数就用自己的
+
+`add_edge` 这个没撒好说的，N->1的路的set集合，里面是元组但是只是放到了`waiting_edges` 有点和记忆的写入 self.writes有一种同样的感觉
+
+
+``
+
+| 参数 | 含义 |
+| --- | --- |
+| `node` | 节点名或节点函数。如果传入 `str`，它表示节点名；如果传入 `StateNode`，它本身就是节点要执行的函数或 `Runnable`，节点名会从函数名或 `Runnable` 名推导。 |
+| `action` | 节点实际执行的函数或 `Runnable`。只有当 `node` 是字符串节点名时才需要传。 |
+| `defer` | 是否延迟执行该节点，直到当前 run 接近结束时再执行。 |
+| `metadata` | 节点元数据，主要用于调试、追踪或图展示。 |
+| `input_schema` | 当前节点的输入 schema。默认Stategrap定义的 的 `state_schema`。 |
+| `retry_policy` | 节点执行失败时的重试策略。 |
+| `cache_policy` | 节点缓存策略。 |
+| `destinations` | 声明该节点可能跳转到哪些目标节点，主要用于图可视化和 `Command` 返回值的目标标注。 |
+
+
 ## 10. langgraph_sdk
 
 ## 11. langgraph_sdk
@@ -992,9 +1235,7 @@ TODO
 
 ## 12. langgraph.managed
 
-
 源码位置：`.venv/Lib/site-packages/langgraph/managed/`
-
 
 
 TODO
@@ -1044,7 +1285,7 @@ class Pregel(
 
 这里就要把 `Pregel`, `StateGraph`, `CompiledStateGraph`串行讲述。
 
-Pregel 定义的是“编译后图”的运行时协议和执行机制以及图属性，方便
+`Pregel` 定义的是“编译后图”的运行时协议和实例化后的执行机制以及图属性，方便图的执行， `StateGraph` 则是用于创建图的先遣状态，在编译后形成了`CompiledStateGraph` ，而 `CompiledStateGraph` 又继承了 `Pregel` 最终形成了图的路径，同时也可使用图的状态
 
 
 TODO
@@ -1053,9 +1294,7 @@ TODO
 
 ## 15. langgraph.runtime
 
-
 源码位置：`.venv/Lib/site-packages/langgraph/runtime.py`
-
 
 
 TODO
