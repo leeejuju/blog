@@ -1,17 +1,41 @@
+---
+const navItems = [
+  { href: '/', label: 'Framework' },
+  { href: '/engineering/', label: 'paper & engineering' },
+  { href: '/rag/', label: 'RAG' },
+  { href: '/memory/', label: 'Memory' },
+  { href: '/eval/', label: 'evaluation & observability' },
+  { href: '/infra/', label: 'Infra' },
+];
+
+const pathname = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? pathname === '/' : pathname.startsWith(href);
+---
+
 <header>
   <div class="container">
     <div class="header-left">
       <img class="header-avatar" src="/images/avatar.png" alt="avatar" width="72" height="72" />
       <a href="/" class="site-title">blog</a>
     </div>
-    <nav>
-      <a href="/">Framework</a>
-      <a href="/engineering/">paper & engineering</a>
-      <a href="/rag/">RAG</a>
-      <a href="/memory/">Memory</a>
-      <a href="/eval/">evaluation & observability</a>
-      <a href="/infra/">Infra</a>
-      <a href="https://github.com/leeejuju" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <nav class="top-nav" aria-label="Primary navigation">
+      <div class="nav-group">
+        <a class="nav-trigger" href="/blog/" aria-haspopup="true" aria-label="文章">
+          <span aria-hidden="true">文</span>
+          <span aria-hidden="true">章</span>
+        </a>
+        <div class="nav-menu">
+          {
+            navItems.map((item) => (
+              <a class:list={['nav-menu-link', { active: isActive(item.href) }]} href={item.href}>
+                {item.label}
+              </a>
+            ))
+          }
+        </div>
+      </div>
+      <a class="github-link" href="https://github.com/leeejuju" target="_blank" rel="noopener noreferrer">GitHub</a>
     </nav>
   </div>
 </header>
@@ -68,7 +92,7 @@
     font-weight: 700;
     color: var(--heading);
     text-decoration: none;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     transition: opacity 0.2s;
     white-space: nowrap;
     flex-shrink: 0;
@@ -77,21 +101,113 @@
     opacity: 0.7;
   }
 
-  nav {
+  .top-nav {
     display: flex;
-    gap: 1.5rem;
+    align-items: center;
+    gap: 2.15rem;
     flex-shrink: 0;
   }
-  nav a {
+
+  .nav-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 56px;
+  }
+
+  .nav-menu {
+    position: absolute;
+    top: calc(100% - 4px);
+    left: 50%;
+    width: min(280px, calc(100vw - 2rem));
+    padding: 0.45rem;
+    display: grid;
+    gap: 0.15rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: rgba(255, 251, 245, 0.96);
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -6px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+
+  .nav-group:hover .nav-menu,
+  .nav-group:focus-within .nav-menu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+  }
+
+  .nav-trigger,
+  .nav-menu-link,
+  .github-link {
     font-size: 0.93rem;
     color: var(--text-muted);
     text-decoration: none;
-    transition: color 0.2s;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+  }
+
+  .nav-menu-link {
+    display: block;
+    padding: 0.58rem 0.65rem;
+    border-radius: 6px;
+    line-height: 1.25;
+  }
+
+  .nav-menu-link:hover,
+  .nav-menu-link.active {
+    color: var(--heading);
+    background: var(--accent-light);
+  }
+
+  .nav-trigger,
+  .github-link {
     padding: 4px 0;
     border-bottom: 2px solid transparent;
   }
-  nav a:hover {
+
+  .nav-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.14em;
+    font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', var(--font-sans);
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  .nav-group:hover .nav-trigger,
+  .nav-group:focus-within .nav-trigger,
+  .github-link:hover {
     color: var(--heading);
     border-bottom-color: var(--accent);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .nav-menu {
+      background: rgba(26, 24, 20, 0.96);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .container {
+      padding: 0 0.75em;
+    }
+
+    .site-title {
+      font-size: 1rem;
+    }
+
+    .top-nav {
+      gap: 1.45rem;
+    }
+
+    .nav-trigger,
+    .github-link {
+      font-size: 0.88rem;
+    }
   }
 </style>
