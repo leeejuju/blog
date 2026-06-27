@@ -14,7 +14,7 @@ uv.lock
 __pycache__/
 *.py[cod]
 third_party/*
-test/*
+**/test/
 
 # env
 .env
@@ -28,3 +28,4 @@ test/*
 # OS
 .DS_Store
 Thumbs.db
+pyproject.toml

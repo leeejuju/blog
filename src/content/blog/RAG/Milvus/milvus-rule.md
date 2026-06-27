@@ -45,7 +45,6 @@ Milvus 的 collection schema 由字段组成，每个字段都有自己的数据
 | `SPARSE_FLOAT_VECTOR` | 稀疏向量字段 | BM25 / sparse 检索 |
 
 
-
 ### 2. 索引类型
 
 索引用来加速检索，不等于排序字段。

@@ -1203,11 +1203,15 @@ def add_node(
 
 ```
 
-`add_node` 用于把可执行StateGraph 定义的 node 节点容器中。并返回一个当前的实例对象
+`add_node` 用于把可执行StateGraph 定义的 node 节点容器中 `nodes: dict[str, StateNodeSpec[Any, ContextT]]`。并返回一个当前的实例对象
 `add_node` 的核心职责就是把执行节点封装为StateNode的类型，同时把可执行节点的函数转为 `Runnale` 对象，附带该节点的走向，元数据等等，最主要的一点是 Runnble对象支持 invoke和ainvoke对象, 用 `asyncio` 的 `run_in_executor` 进行封装, 针对input的state，没输入直接从Graph的SatateSchema 拿，如果规定了自己的参数就用自己的
 
-`add_edge` 这个没撒好说的，N->1的路的set集合，里面是元组但是只是放到了`waiting_edges` 有点和记忆的写入 self.writes有一种同样的感觉
+`add_edge` 这个没撒好说的，节点之间的路径存储到N->1的路的set集合，里面是元组但是只是放到了`waiting_edges: set[tuple[tuple[str, ...], str]]` 有点和记忆的写入 self.writes有一种同样的感觉
 
+`add_sequence` 将一系列的可执行节点装入node节点中
+
+`add_conditional_edges` 条件链路通过
+`branches: defaultdict[str, dict[str, BranchSpec]]` 也形成的是当前的StateGraph
 
 ``
 
@@ -1222,6 +1226,169 @@ def add_node(
 | `cache_policy` | 节点缓存策略。 |
 | `destinations` | 声明该节点可能跳转到哪些目标节点，主要用于图可视化和 `Command` 返回值的目标标注。 |
 
+### compile
+
+> 图编译，这里是定义好的图结构转向 `CompiledStateGraph` 的转换方法
+
+``` python
+def compile(
+        self,
+        checkpointer: Checkpointer = None,
+        *,
+        cache: BaseCache | None = None,
+        store: BaseStore | None = None,
+        interrupt_before: All | list[str] | None = None,
+        interrupt_after: All | list[str] | None = None,
+        debug: bool = False,
+        name: str | None = None,
+    ) -> CompiledStateGraph[StateT, ContextT, InputT, OutputT]:
+        """Compiles the `StateGraph` into a `CompiledStateGraph` object.
+
+        The compiled graph implements the `Runnable` interface and can be invoked,
+        streamed, batched, and run asynchronously.
+
+        Args:
+            checkpointer: A checkpoint saver object or flag.
+
+                If provided, this `Checkpointer` serves as a fully versioned "short-term memory" for the graph,
+                allowing it to be paused, resumed, and replayed from any point.
+
+                If `None`, it may inherit the parent graph's checkpointer when used as a subgraph.
+
+                If `False`, it will not use or inherit any checkpointer.
+
+                **Important**: When a checkpointer is enabled, you should pass a `thread_id`
+                in the config when invoking the graph:
+
+                ```python
+                config = {"configurable": {"thread_id": "my-thread"}}
+                graph.invoke(inputs, config)
+                ```
+
+                The `thread_id` is the key used to store and retrieve checkpoints. Use a
+                unique ID for independent runs, or reuse the same ID to accumulate state
+                across invocations (e.g., for conversation memory).
+
+            interrupt_before: An optional list of node names to interrupt before.
+            interrupt_after: An optional list of node names to interrupt after.
+            debug: A flag indicating whether to enable debug mode.
+            name: The name to use for the compiled graph.
+
+        Returns:
+            CompiledStateGraph: The compiled `StateGraph`.
+        """
+        checkpointer = ensure_valid_checkpointer(checkpointer)
+        serde_allowlist: set[tuple[str, ...]] | None = None
+        if _serde.STRICT_MSGPACK_ENABLED:
+            schema_types: list[type[Any]] = [
+                self.state_schema,
+                self.input_schema,
+                self.output_schema,
+            ]
+            if self.context_schema is not None:
+                schema_types.append(self.context_schema)
+            for node in self.nodes.values():
+                schema_types.append(node.input_schema)
+            for branches in self.branches.values():
+                for branch in branches.values():
+                    if branch.input_schema is not None:
+                        schema_types.append(branch.input_schema)
+            serde_allowlist = _serde.build_serde_allowlist(
+                schemas=schema_types,
+                channels=self.channels,
+            )
+            checkpointer = _serde.apply_checkpointer_allowlist(
+                checkpointer, serde_allowlist
+            )
+
+        # assign default values
+        interrupt_before = interrupt_before or []
+        interrupt_after = interrupt_after or []
+
+        # validate the graph
+        self.validate(
+            interrupt=(
+                (interrupt_before if interrupt_before != "*" else []) + interrupt_after
+                if interrupt_after != "*"
+                else []
+            )
+        )
+
+        # prepare output channels
+        output_channels = (
+            "__root__"
+            if len(self.schemas[self.output_schema]) == 1
+            and "__root__" in self.schemas[self.output_schema]
+            else [
+                key
+                for key, val in self.schemas[self.output_schema].items()
+                if not is_managed_value(val)
+            ]
+        )
+        stream_channels = (
+            "__root__"
+            if len(self.channels) == 1 and "__root__" in self.channels
+            else [
+                key for key, val in self.channels.items() if not is_managed_value(val)
+            ]
+        )
+
+        compiled = CompiledStateGraph[StateT, ContextT, InputT, OutputT](
+            builder=self,
+            schema_to_mapper={},
+            context_schema=self.context_schema,
+            nodes={},
+            channels={
+                **self.channels,
+                **self.managed,
+                START: EphemeralValue(self.input_schema),
+            },
+            input_channels=START,
+            stream_mode="updates",
+            output_channels=output_channels,
+            stream_channels=stream_channels,
+            checkpointer=checkpointer,
+            interrupt_before_nodes=interrupt_before,
+            interrupt_after_nodes=interrupt_after,
+            auto_validate=False,
+            debug=debug,
+            store=store,
+            cache=cache,
+            name=name or "LangGraph",
+        )
+        compiled._serde_allowlist = serde_allowlist
+
+        compiled.attach_node(START, None)
+        for key, node in self.nodes.items():
+            compiled.attach_node(key, node)
+
+        # Record output/state mappers for v2 stream coercion (pydantic/dataclass only)
+        compiled._output_mapper = _pick_mapper(
+            list(output_channels)
+            if isinstance(output_channels, list)
+            else [output_channels],
+            self.output_schema,
+        )
+        compiled._state_mapper = _pick_mapper(
+            list(stream_channels)
+            if isinstance(stream_channels, list)
+            else [stream_channels],
+            self.state_schema,
+        )
+
+        for start, end in self.edges:
+            compiled.attach_edge(start, end)
+
+        for starts, end in self.waiting_edges:
+            compiled.attach_edge(starts, end)
+
+        for start, branches in self.branches.items():
+            for name, branch in branches.items():
+                compiled.attach_branch(start, name, branch)
+
+        return compiled.validate()
+
+```
 
 ## 10. langgraph_sdk
 
@@ -1236,7 +1403,6 @@ TODO
 ## 12. langgraph.managed
 
 源码位置：`.venv/Lib/site-packages/langgraph/managed/`
-
 
 TODO
 

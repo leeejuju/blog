@@ -1,13 +1,13 @@
 ---
 title: "Paper: Memory in the Age of AI Agents: A Survey"
-description: "Agent 时代下的 Memory"
+description: "Agent 时代下的 Memory "
 pubDate: 2026-03-02
 section: engineering
 ---
 
 # Memory in the Age of AI Agents: A Survey
 
-## 1. Preliminaries: Formalizing Agents and Memory
+## 1. Preliminaries: Formalizing Agents and Memory（何为 Agent 以及记忆）
 
 ### 1.1 LLM-based Agent Systems
 
